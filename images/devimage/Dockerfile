@@ -9,7 +9,7 @@ ARG USER_PASSWD
 
 RUN apt update && \
     apt upgrade -y && \
-    apt install -y sudo git vim tmux net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
+    apt install -y sudo tree git vim tmux net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
     apt autoremove && \
     rm -rf /var/lib/apt/lists/*
 

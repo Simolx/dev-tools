@@ -1,6 +1,6 @@
-piVersion: v1
+apiVersion: v1
 kind: Namespace
 metadata:
-  name: development
+  name: {{ .Values.global.namespace }}
   labels:
-    name: development
+    name: {{ .Values.global.namespace }}
