@@ -1,6 +1,7 @@
 FROM ubuntu
-ARG CONDA_VERSION="2024.02-1"
-ARG GO_VERSION="1.22.1"
+
+ARG CONDA_VERSION="2024.06-1"
+ARG GO_VERSION="1.23.1"
 ARG NVM_VERSION="v0.39.7"
 ARG NODE_VERSION="20"
 ARG HELM_VERSION=
@@ -9,14 +10,14 @@ ARG USER_PASSWD
 
 RUN apt update && \
     apt upgrade -y && \
-    apt install -y sudo tree git vim tmux net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
+    apt install -y sudo tree git vim tmux openssh-client net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
     apt autoremove && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -o python_installer.sh -L https://repo.anaconda.com/archive/Anaconda3-${CONDA_VERSION}-Linux-$(uname -m).sh && \
     bash python_installer.sh -p /opt/python3 -b && \
     /opt/python3/bin/conda update --all -y && \
-    /opt/python3/bin/conda install -y conda-forge::tqdm conda-forge::powerline-status conda-forge::powerline-gitstatus conda-forge::py7zr conda-forge::airflow && \
+    /opt/python3/bin/conda install -y conda-forge::powerline-status conda-forge::powerline-gitstatus conda-forge::py7zr conda-forge::airflow && \
     /opt/python3/bin/conda clean --all -y && \
     rm -f python_installer.sh
 
