@@ -1,22 +1,23 @@
 FROM ubuntu
-ARG PY_ADDR
+ARG PY_VERSION=2024.06-1
+ARG GO_VERSION=1.23.1
 ARG USERNAME=developer
 ARG USER_PASSWD
 
 RUN apt update && \
     apt upgrade -y && \
-    apt install -y sudo git vim tmux iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
+    apt install -y sudo git vim tmux tree openssh-client iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
     apt autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -o python_installer.sh -k -L $PY_ADDR && \
+RUN curl -o python_installer.sh -k -L https://repo.anaconda.com/archive/Anaconda3-${PY_VERSION}-Linux-`(uname -m)`.sh && \
     bash python_installer.sh -p /opt/python3 -b && \
     /opt/python3/bin/conda update --all -y && \
-    /opt/python3/bin/conda install -y conda-forge::tqdm conda-forge::powerline-status conda-forge::powerline-gitstatus conda-forge::py7zr && \
+    /opt/python3/bin/conda install -y conda-forge::powerline-status conda-forge::powerline-gitstatus conda-forge::py7zr && \
     /opt/python3/bin/conda clean --all -y && \
     rm -f python_installer.sh
 
-RUN curl -L -k -o go_installer.tar.gz https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && \
+RUN curl -L -k -o go_installer.tar.gz https://go.dev/dl/go${GO_VERSION}.linux-`(uname -m | sed 's/aarch64/arm64/g')`.tar.gz && \
     rm -rf /usr/local/go && \
     tar -C /usr/local -xzf go_installer.tar.gz && \
     rm -f go_installer.tar.gz && \
@@ -52,10 +53,9 @@ POWERLINE_BASH_SELECT=1
 alias mux='tmuxinator'
 alias tmux='tmux -u'
 EOF
-#    curl -O -L -k https://github.com/powerline/fonts/archive/refs/heads/master.zip && \
 
 RUN cd ${HOME} && \
-    curl -O -L -k http://192.168.0.105:8000/master.zip && \
+    curl -O -L -k https://github.com/powerline/fonts/archive/refs/heads/master.zip && \
     unzip master.zip && \
     cd fonts-master && \
     ./install.sh && \
