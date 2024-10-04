@@ -4,20 +4,21 @@ ARG CONDA_VERSION="2024.06-1"
 ARG GO_VERSION="1.23.1"
 ARG NVM_VERSION="v0.39.7"
 ARG NODE_VERSION="20"
-ARG HELM_VERSION=
 ARG USERNAME=developer
 ARG USER_PASSWD
 
-RUN apt update && \
-    apt upgrade -y && \
-    apt install -y sudo tree git vim tmux openssh-client net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
-    apt autoremove && \
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y sudo tree git vim tmux openssh-client net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
+    apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -o python_installer.sh -L https://repo.anaconda.com/archive/Anaconda3-${CONDA_VERSION}-Linux-$(uname -m).sh && \
     bash python_installer.sh -p /opt/python3 -b && \
     /opt/python3/bin/conda update --all -y && \
-    /opt/python3/bin/conda install -y conda-forge::powerline-status conda-forge::powerline-gitstatus conda-forge::py7zr conda-forge::airflow && \
+    pypackages="conda-forge::py7zr" && \
+    [ "$(uname -m)" = "x86_64" ] && pypackages="conda-forge::powerline-status conda-forge::powerline-gitstatus ${pypackages}" || echo && \
+    /opt/python3/bin/conda install -y ${pypackages} && \
     /opt/python3/bin/conda clean --all -y && \
     rm -f python_installer.sh
 
@@ -57,31 +58,32 @@ RUN GITHUB_RAW_IP=$(nslookup  raw.githubusercontent.com 8.8.8.8 | grep Address |
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 RUN /opt/python3/bin/conda init && \
-    mkdir -p ${HOME}/.config/powerline && \
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ${HOME}/.bashrc && \
+    echo "alias mux='tmuxinator'" >> ${HOME}/.bashrc && \
+    echo "alias tmux='tmux -u'" >> ${HOME}/.bashrc && \
+    [ "$(uname -m)" = "x86_64" ] && mkdir -p ${HOME}/.config/powerline && \
     repository=$(/opt/python3/bin/pip show powerline-status | grep Location | awk '{print $2}') && \
     cp -r ${repository}/powerline/config_files ${HOME}/.config/powerline && \
-    echo source ${repository}/powerline/bindings/tmux/powerline.conf >> ${HOME}/.tmux.conf && \
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ${HOME}/.bashrc && \
-    cat <<EOF >> ${HOME}/.bashrc
+    echo source ${repository}/powerline/bindings/tmux/powerline.conf >> ${HOME}/.tmux.conf || echo && \
+    [ "$(uname -m)" = "aarch64" ] && echo || cat <<EOF >> ${HOME}/.bashrc
 powerline-daemon -q
 POWERLINE_BASH_CONTINUATION=1
 POWERLINE_BASH_SELECT=1
 . ${repository}/powerline/bindings/bash/powerline.sh
 
-alias mux='tmuxinator'
-alias tmux='tmux -u'
 EOF
 
-RUN cd ${HOME} && \
+RUN [ "$(uname -m)" = "x86_64" ] && cd ${HOME} && \
     curl -O -L https://github.com/powerline/fonts/archive/refs/heads/master.zip && \
     unzip master.zip && \
     cd fonts-master && \
     ./install.sh && \
     /opt/python3/bin/fc-cache ${HOME}/.local/share/fonts && \
     cd .. && \
-    rm -rf fonts-master master.zip
+    rm -rf fonts-master master.zip || echo
 
-RUN /usr/local/go/bin/go env -w GOPROXY=https://goproxy.cn,direct && \
+RUN PATH=$PATH:/usr/local/go/bin && \
+    /usr/local/go/bin/go env -w GOPROXY=https://goproxy.cn,direct && \
     vim +PlugInstall +qall && \
     vim +GoInstallBinaries +qall
 
