@@ -1,0 +1,16 @@
+- name: install prepare packages
+  hosts: target
+#  become: true
+#  become_user: root
+  gather_facts: no
+  tasks:
+    - name: Run a script with arguments (free form)
+      ansible.builtin.script:
+        cmd: templates/preinstall.sh
+      register: script_output
+      failed_when: script_output.rc != 0
+
+    - name: Show script output
+      debug:
+        var: script_output.stdout
+      when: script_output.failed
