@@ -4,6 +4,8 @@
   become_user: root
   vars:
     KUBERNETESVERSION: "v1.31"
+    PAUSERUNTIMEVERSION: "3.10"
+    PAUSESANDBOXVERSION: "3.9"
   tasks:
     - name: Add kubernetes package repository on CentOS
       ansible.builtin.yum_repository:
@@ -58,4 +60,12 @@
         name: kubelet
         state: started
         enabled: true
-
+    - name: pull kubernetes images
+      ansible.builtin.shell:
+        cmd: kubeadm config images pull --cri-socket=unix:///var/run/cri-dockerd.sock --image-repository=registry.aliyuncs.com/google_containers
+    - name: copy pause image tag
+      community.docker.docker_image:
+        name: registry.aliyuncs.com/google_containers/pause:{{ PAUSERUNTIMEVERSION }}
+        repository: registry.k8s.io/pause:{{ PAUSESANDBOXVERSION }}
+        source: local
+        force_tag: true
