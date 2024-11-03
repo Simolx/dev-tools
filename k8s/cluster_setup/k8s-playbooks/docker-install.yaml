@@ -1,0 +1,211 @@
+- name: install docker
+  hosts: controlplane
+  become: true
+  become_user: root
+  vars:
+    GOVERSION: "1.23.2"
+    GOPROXY: "https://goproxy.cn,direct"
+    CRIDOCKERDVERSION: 0.3.15
+  tasks:
+    - name: remove installed docker packages on CentOS
+      ansible.builtin.yum:
+        name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-logrotate
+          - docker-engine
+        state: removed
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: install yum-utils packages on Centos
+      ansible.builtin.yum:
+        name: yum-utils
+        state: latest
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: yum add docker repository on CentOS
+      ansible.builtin.shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: install docker packages On CentOS
+      ansible.builtin.yum:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: latest
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: remove installed docker packages on Ubuntu
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-doc
+          - docker-compose
+          - docker-compose-v2
+          - podman-docker
+          - containerd
+          - runc
+        state: absent
+      when: ansible_facts['os_family'] == "Debian"
+    - name: create Docker GPG Key directory on Ubuntu
+      ansible.builtin.shell:
+        cmd: install -m 0755 -d /etc/apt/keyrings
+      when: ansible_facts['os_family'] == "Debian"
+    - name: Add Docker GPG Key on Ubuntu
+      ansible.builtin.shell:
+        cmd: curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+      register: result
+      retries: 10
+      delay: 3
+      until: result.rc == 0
+      when: ansible_facts['os_family'] == "Debian"
+    - name: Chmod Docker GPG Key on Ubuntu
+      ansible.builtin.shell:
+        cmd: chmod a+r /etc/apt/keyrings/docker.asc
+      when: ansible_facts['os_family'] == "Debian"
+    - name: Add Docker repository on Ubuntu
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+      when: ansible_facts['os_family'] == "Debian"
+    - name: install docker packages On Ubuntu
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: latest
+        update_cache: true
+      when: ansible_facts['os_family'] == "Debian"
+    - name: add user to docker user group
+      ansible.builtin.user:
+        name: vagrant
+        append: true
+        groups:
+          - docker
+    - name: enable and start docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+    - name: enable and start containerd service
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+    - name: install golang
+      ansible.builtin.unarchive:
+        src: https://go.dev/dl/go{{ GOVERSION }}.linux-{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}.tar.gz
+        dest: /usr/local
+        remote_src: yes
+      register: result
+      retries: 10
+      delay: 3
+      until: result.failed == false
+    - name: add go to user PATH on CentOS
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.bash_profile"
+        line: 'export PATH=$PATH:/usr/local/go/bin'
+        create: yes
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: add go to user PATH on Ubuntu
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.bashrc"
+        line: 'export PATH=$PATH:/usr/local/go/bin'
+        create: yes
+      when: ansible_facts['os_family'] == "Debian"
+    - name: install golang
+      ansible.builtin.unarchive:
+        src: https://go.dev/dl/go{{ GOVERSION }}.linux-{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}.tar.gz
+        dest: /usr/local
+        remote_src: yes
+      register: result
+      retries: 10
+      delay: 3
+      until: result.failed == false
+    - name: add go to user PATH on CentOS
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.bash_profile"
+        line: 'export PATH=$PATH:/usr/local/go/bin'
+        create: yes
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: add go to user PATH on Ubuntu
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.bashrc"
+        line: 'export PATH=$PATH:/usr/local/go/bin'
+        create: yes
+      when: ansible_facts['os_family'] == "Debian"
+    - name: Install cir-docker package On CentOS
+      ansible.builtin.yum:
+        name: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd-{{ CRIDOCKERDVERSION }}-3.fc36.{{ ansible_architecture }}.rpm
+        state: latest
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: Install cir-docker package On Ubuntu
+      ansible.builtin.apt:
+        deb: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd_{{ CRIDOCKERDVERSION }}.3-0.ubuntu-{{ ansible_distribution_release }}_{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}.deb
+      when: ansible_facts['os_family'] == "Debian"
+      register: result
+      retries: 10
+      delay: 3
+      until: result.failed == false
+##    - name: unzip cri-container
+##      ansible.builtin.unarchive:
+##        src: files/cri-dockerd.tar.gz
+##        dest: /tmp
+##    - name: create cri-container build directory
+##      ansible.builtin.file:
+##        path: /tmp/cri-dockerd/bin
+##        state: directory
+##        mode: '0755'
+##    - name: create cri-container installed directory
+##      ansible.builtin.file:
+##        path: /usr/local/bin
+##        state: directory
+##        mode: '0755'
+##    - name: build cri-container
+##      ansible.builtin.shell:
+##        cmd: /usr/local/go/bin/go build -o bin/cri-dockerd
+##        chdir: /tmp/cri-dockerd
+##      environment:
+##        GOPROXY: '{{ GOPROXY }}'
+##    - name: install cri-container
+##      ansible.builtin.shell:
+##        cmd: install -o root -g root -m 0755 bin/cri-dockerd /usr/local/bin/cri-dockerd
+##        chdir: /tmp/cri-dockerd
+##    - name: copy cri-container services config file
+##      ansible.builtin.copy:
+##        src: /tmp/cri-dockerd/packaging/systemd/
+##        dest: /etc/systemd/system/
+##    - name: update cri-container services config
+##      ansible.builtin.replace:
+##        path: /etc/systemd/system/cri-docker.service
+##        regexp: '(.*)/usr/bin/cri-dockerd(.*)'
+##        replace: '\1/usr/local/bin/cri-dockerd\2'
+
+    - name: systemctl daemon reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+    - name: enable cri-docker service
+      ansible.builtin.systemd:
+        name: cri-docker.service
+        enabled: true
+    - name: enable and start docker socket
+      ansible.builtin.systemd:
+        name: cri-docker.socket
+        state: started
+        enabled: true
+    - name: source user bash_profile On CentOS
+      ansible.builtin.shell: "source {{ lookup('ansible.builtin.env', 'HOME') }}/.bash_profile"
+      when: ansible_facts['os_family'] == "RedHat"
+##    - name: source user bash_profile On Ubuntu
+##      ansible.builtin.shell: "source {{ lookup('ansible.builtin.env', 'HOME') }}/.bashrc"
+##      when: ansible_facts['os_family'] == "Debian"
+    - name: set go proxy
+      ansible.builtin.shell: /usr/local/go/bin/go env -w GOPROXY=https://goproxy.cn,direct
+
+
