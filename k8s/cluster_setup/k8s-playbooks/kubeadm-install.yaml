@@ -6,6 +6,7 @@
     KUBERNETESVERSION: "v1.31"
     PAUSERUNTIMEVERSION: "3.10"
     PAUSESANDBOXVERSION: "3.9"
+    CONTROLPLANEIPADDR: "10.98.66.30"
   tasks:
     - name: Add kubernetes package repository on CentOS
       ansible.builtin.yum_repository:
@@ -69,3 +70,7 @@
         repository: registry.k8s.io/pause:{{ PAUSESANDBOXVERSION }}
         source: local
         force_tag: true
+    - name: add hosts config
+      ansible.builtin.lineinfile:
+        path: "/etc/hosts"
+        line: "{{ CONTROLPLANEIPADDR }} controlplane"

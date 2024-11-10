@@ -43,8 +43,12 @@ ansible-playbook -i inventory.ini k8s-deploy.yaml
 
 ```bash
 # vagrant ssh master1
-# check container images
-kubeadm config images list --cri-socket=unix:///var/run/cri-dockerd.sock  --image-repository=registry.aliyuncs.com/google_containers
+# check and pull container images
+kubeadm config images list --image-repository=registry.aliyuncs.com/google_containers
+# or kubeadm config images list --cri-socket=unix:///var/run/cri-dockerd.sock  --image-repository=registry.aliyuncs.com/google_containers
+
+kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers
+
 # copy pause image tag, or config /etc/containerd/config.toml
 docker tag registry.aliyuncs.com/google_containers/pause:3.10 registry.k8s.io/pause:3.9
 
@@ -56,7 +60,7 @@ sudo kubeadm init --control-plane-endpoint  controlplane --pod-network-cidr=10.9
 
 8. worker join use the command from init result
 
-9. emove the taints on the control plane so that you can schedule pods on it
+9. remove the taints on the control plane so that you can schedule pods on it
 
 ```bash
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
