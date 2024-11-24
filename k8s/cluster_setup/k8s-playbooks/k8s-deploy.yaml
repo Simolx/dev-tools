@@ -1,0 +1,8 @@
+- name: install python packages
+  ansible.builtin.import_playbook: py-prepare.yaml
+- name: install prepare packages
+  ansible.builtin.import_playbook: k8s-prepare.yaml
+- name: install docker packages
+  ansible.builtin.import_playbook: docker-install.yaml
+- name: install kubeadm packages
+  ansible.builtin.import_playbook: kubeadm-install.yaml

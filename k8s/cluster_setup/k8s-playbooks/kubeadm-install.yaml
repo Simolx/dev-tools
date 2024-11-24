@@ -1,0 +1,76 @@
+- name: install kubeadm packages
+  hosts: controlplane
+  become: true
+  become_user: root
+  vars:
+    KUBERNETESVERSION: "v1.31"
+    PAUSERUNTIMEVERSION: "3.10"
+    PAUSESANDBOXVERSION: "3.9"
+    CONTROLPLANEIPADDR: "10.98.66.30"
+  tasks:
+    - name: Add kubernetes package repository on CentOS
+      ansible.builtin.yum_repository:
+        name: Kubernetes
+        file: kubernetes
+        baseurl: https://pkgs.k8s.io/core:/stable:/{{ KUBERNETESVERSION }}/rpm
+        enabled: true
+        gpgchck: true
+        gpgkey: https://pkgs.k8s.io/core:/stable:/{{ KUBERNETESVERSION }}/rpm/repodata/repomd.xml.key
+        exclude:
+          - kubelet
+          - kubeadm
+          - kubectl
+          - cri-tools
+          - kubernetes-cni
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: installed kubernetes packages on CentOS
+      ansible.builtin.yum:
+         name:
+           - kubelet
+           - kubeadm
+           - kubectl
+         state: latest
+         disable_exclude: kubernetes
+      when: ansible_facts['os_family'] == "RedHat"
+    - name: Add kubernetes repository signing key on Ubuntu
+      ansible.builtin.apt_key:
+        url: https://pkgs.k8s.io/core:/stable:/{{ KUBERNETESVERSION }}/deb/Release.key
+        keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      register: result
+      retries: 10
+      delay: 3
+      until: result.failed == false
+      when: ansible_facts['os_family'] == "Debian"
+    - name: Add kubernetes package repository on Ubuntu
+      ansible.builtin.lineinfile:
+        path: "/etc/apt/sources.list.d/kubernetes.list"
+        line: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ KUBERNETESVERSION }}/deb/ /'
+        create: yes
+      when: ansible_facts['os_family'] == "Debian"
+    - name: install kubernetes packages On Ubuntu
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: latest
+        update_cache: true
+      when: ansible_facts['os_family'] == "Debian"
+    - name: enable and start kubelet service
+      ansible.builtin.systemd:
+        name: kubelet
+        state: started
+        enabled: true
+    - name: pull kubernetes images
+      ansible.builtin.shell:
+        cmd: kubeadm config images pull --cri-socket=unix:///var/run/cri-dockerd.sock --image-repository=registry.aliyuncs.com/google_containers
+    - name: copy pause image tag
+      community.docker.docker_image:
+        name: registry.aliyuncs.com/google_containers/pause:{{ PAUSERUNTIMEVERSION }}
+        repository: registry.k8s.io/pause:{{ PAUSESANDBOXVERSION }}
+        source: local
+        force_tag: true
+    - name: add hosts config
+      ansible.builtin.lineinfile:
+        path: "/etc/hosts"
+        line: "{{ CONTROLPLANEIPADDR }} controlplane"
