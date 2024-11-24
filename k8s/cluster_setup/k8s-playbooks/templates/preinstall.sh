@@ -12,7 +12,18 @@ rm ~/miniconda3/miniconda.sh
 ~/miniconda3/bin/conda update --all -y
 if [ "$1" = "control" ]; then
   echo "install ansible on control node"
-  ~/miniconda3/bin/conda install -y conda-forge::ansible
+  grep -i rhel /etc/os-release
+  os=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | tr -d '"')
+  os_like=$(grep "^ID_LIKE=" /etc/os-release | cut -d'=' -f2 | tr -d '"')
+  # os=$(awk -F= '/^ID_LIKE=/{print $2}' /etc/os-release | tr -d '"')
+  if [ "$os" = "centos" ]; then
+    ~/miniconda3/bin/conda install -y conda-forge::ansible==10.5.0
+  elif [ "$os_like" = "debian" ]; then
+    ~/miniconda3/bin/conda install -y conda-forge::ansible
+  else
+    echo "Unsupported OS: $os"
+    exit 1
+  fi
 fi
 ~/miniconda3/bin/conda clean --all -y
 

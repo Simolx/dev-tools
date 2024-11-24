@@ -119,27 +119,6 @@
         line: 'export PATH=$PATH:/usr/local/go/bin'
         create: yes
       when: ansible_facts['os_family'] == "Debian"
-    - name: install golang
-      ansible.builtin.unarchive:
-        src: https://go.dev/dl/go{{ GOVERSION }}.linux-{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}.tar.gz
-        dest: /usr/local
-        remote_src: yes
-      register: result
-      retries: 10
-      delay: 3
-      until: result.failed == false
-    - name: add go to user PATH on CentOS
-      ansible.builtin.lineinfile:
-        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.bash_profile"
-        line: 'export PATH=$PATH:/usr/local/go/bin'
-        create: yes
-      when: ansible_facts['os_family'] == "RedHat"
-    - name: add go to user PATH on Ubuntu
-      ansible.builtin.lineinfile:
-        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.bashrc"
-        line: 'export PATH=$PATH:/usr/local/go/bin'
-        create: yes
-      when: ansible_facts['os_family'] == "Debian"
     - name: Install cir-docker package On CentOS
       ansible.builtin.yum:
         name: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd-{{ CRIDOCKERDVERSION }}-3.fc36.{{ ansible_architecture }}.rpm
