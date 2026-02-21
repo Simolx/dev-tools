@@ -1,5 +1,5 @@
-# - name: install python packages
-#  ansible.builtin.import_playbook: py-prepare.yaml
+- name: install python packages
+  ansible.builtin.import_playbook: py-prepare.yaml
 - name: install prepare packages
   ansible.builtin.import_playbook: k8s-prepare.yaml
 - name: install docker packages

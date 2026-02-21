@@ -16,7 +16,7 @@ bash $PATH/cluster_setup/k8s-playbooks/templates/preinstall.sh control
 bash $PATH/cluster_setup/k8s-playbooks/templates/preinstall.sh
 ```
 
-3. copy public key from master1 `${HOME}/.ssh/authorized_keys` master1 to master2 and master3
+3. copy public key from master1 `${HOME}/.ssh/authorized_keys` to master2 and master3
 
 4. check ansible
 
@@ -32,19 +32,23 @@ ansible -i inventory.ini all -m raw -a "uname -a"
 ansible-playbook -i inventory.ini k8s-deploy.yaml
 ```
 
-6. (Option) config hosts
+6. (Option) config hosts, already config in kubeadm-install task
 
 ```bash
 # add to /etc/hosts
 10.98.66.30 controlplane
 ```
 
-7. setup kubernetes cluster
+7. setup kubernetes cluster, pull image already config in kubeadm-install task, only need to init kubernetes
 
 ```bash
 # vagrant ssh master1
-# check container images
-kubeadm config images list --cri-socket=unix:///var/run/cri-dockerd.sock  --image-repository=registry.aliyuncs.com/google_containers
+# check and pull container images
+kubeadm config images list --image-repository=registry.aliyuncs.com/google_containers
+# or kubeadm config images list --cri-socket=unix:///var/run/cri-dockerd.sock  --image-repository=registry.aliyuncs.com/google_containers
+
+kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers
+
 # copy pause image tag, or config /etc/containerd/config.toml
 docker tag registry.aliyuncs.com/google_containers/pause:3.10 registry.k8s.io/pause:3.9
 
@@ -54,9 +58,16 @@ sudo kubeadm init --control-plane-endpoint  controlplane --pod-network-cidr=10.9
 
 ```
 
-8. worker join use the command from init result
+8. config calico
 
-9. emove the taints on the control plane so that you can schedule pods on it
+```bash
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.0/manifests/tigera-operator.yaml
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.0/manifests/custom-resources.yaml
+```
+
+9. worker join use the command from init result
+
+10. remove the taints on the control plane so that you can schedule pods on it
 
 ```bash
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
