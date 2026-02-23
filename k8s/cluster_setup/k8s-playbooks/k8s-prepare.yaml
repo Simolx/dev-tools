@@ -35,12 +35,11 @@
     - name: install packages on Ubuntu
       ansible.builtin.apt:
         name:
+          - apt-transport-https
           - ca-certificates
           - curl
-          - apt-transport-https
+          - gnupg
           - wget
-          - software-properties-common
-          - gpg
         state: latest
       when: ansible_facts['os_family'] == "Debian"
     - name: systemctl daemon reload and reexec

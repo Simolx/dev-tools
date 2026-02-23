@@ -3,7 +3,7 @@
   become: true
   become_user: root
   vars:
-    KUBERNETESVERSION: "v1.31"
+    KUBERNETESVERSION: "v1.35"
     PAUSERUNTIMEVERSION: "3.10"
     PAUSESANDBOXVERSION: "3.9"
     CONTROLPLANEIPADDR: "10.98.66.30"

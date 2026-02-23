@@ -1,0 +1,109 @@
+---
+- name: Enable cgroup v2 on Linux
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    cgroupv2_kernel_args: "systemd.unified_cgroup_hierarchy=1 cgroup_no_v1=all"
+
+  tasks:
+
+    ############################################################
+    # 通用：检查当前 cgroup 类型
+    ############################################################
+    - name: Check current cgroup filesystem
+      command: stat -fc %T /sys/fs/cgroup
+      register: cgroup_fs
+      changed_when: false
+
+    - name: Show current cgroup fs
+      debug:
+        msg: "Current cgroup filesystem: {{ cgroup_fs.stdout }}"
+
+    ############################################################
+    # RedHat / CentOS / Rocky / Alma
+    ############################################################
+    - name: Ensure grubby installed (RedHat family)
+      package:
+        name: grubby
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Enable cgroup v2 kernel args (RedHat family)
+      command: >
+        grubby --update-kernel=ALL
+        --args="{{ cgroupv2_kernel_args }}"
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - cgroup_fs.stdout != "cgroup2fs"
+      register: grubby_result
+      changed_when: true
+
+    ############################################################
+    # Debian / Ubuntu
+    ############################################################
+    - name: Ensure /etc/default/grub exists (Debian family)
+      stat:
+        path: /etc/default/grub
+      register: grub_cfg
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Fail if grub config missing (Debian family)
+      fail:
+        msg: "/etc/default/grub not found"
+      when:
+        - ansible_facts['os_family'] == "Debian"
+        - not grub_cfg.stat.exists
+
+    - name: Set GRUB_CMDLINE_LINUX for cgroup v2 (Debian family)
+      lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX='
+        line: 'GRUB_CMDLINE_LINUX="{{ cgroupv2_kernel_args }}"'
+      when:
+        - ansible_facts['os_family'] == "Debian"
+        - cgroup_fs.stdout != "cgroup2fs"
+      register: grub_line
+
+    - name: Update grub (Debian family)
+      command: update-grub
+      when:
+        - ansible_facts['os_family'] == "Debian"
+        - grub_line is changed
+
+    ############################################################
+    # systemd 统一 cgroup hierarchy（所有系统）
+    ############################################################
+    - name: Force systemd unified cgroup hierarchy
+      lineinfile:
+        path: /etc/systemd/system.conf
+        regexp: '^#?DefaultControllers='
+        line: 'DefaultControllers='
+      when: cgroup_fs.stdout != "cgroup2fs"
+      register: systemd_cfg
+
+    ############################################################
+    # 重启（仅当需要）
+    ############################################################
+    - name: Reboot system if cgroup v2 not active
+      reboot:
+        msg: "Rebooting to enable cgroup v2"
+        reboot_timeout: 600
+      when:
+        - cgroup_fs.stdout != "cgroup2fs"
+        - grubby_result is changed
+          or grub_line is changed
+          or systemd_cfg is changed
+
+    ############################################################
+    # 重启后校验
+    ############################################################
+    - name: Verify cgroup filesystem after reboot
+      command: stat -fc %T /sys/fs/cgroup
+      register: cgroup_fs_after
+      changed_when: false
+
+    - name: Final cgroup v2 status
+      debug:
+        msg: "Final cgroup filesystem: {{ cgroup_fs_after.stdout }}"
