@@ -141,7 +141,7 @@
       when: ansible_facts['os_family'] == "RedHat"
     - name: Install cir-docker package On Ubuntu
       ansible.builtin.apt:
-        deb: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd_{{ CRIDOCKERDVERSION }}.3-0.ubuntu-{{ ansible_distribution_release }}_{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}.deb
+        deb: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd_{{ CRIDOCKERDVERSION }}.3-0.ubuntu-{{ ansible_distribution_release }}_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb
       when: ansible_facts['os_family'] == "Debian"
       register: result
       retries: 10
@@ -199,7 +199,7 @@
 ##    - name: source user bash_profile On Ubuntu
 ##      ansible.builtin.shell: "source {{ lookup('ansible.builtin.env', 'HOME') }}/.bashrc"
 ##      when: ansible_facts['os_family'] == "Debian"
-    - name: set go proxy
-      ansible.builtin.shell: /usr/local/go/bin/go env -w GOPROXY=https://goproxy.cn,direct
+##    - name: set go proxy
+##      ansible.builtin.shell: /usr/local/go/bin/go env -w GOPROXY=https://goproxy.cn,direct
 
 

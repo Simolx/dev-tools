@@ -4,8 +4,8 @@
   become_user: root
   vars:
     KUBERNETESVERSION: "v1.35"
-    PAUSERUNTIMEVERSION: "3.10"
-    PAUSESANDBOXVERSION: "3.9"
+    PAUSERUNTIMEVERSION: "3.10.1"
+    PAUSESANDBOXVERSION: "3.10"
     CONTROLPLANEIPADDR: "10.98.66.30"
   tasks:
     - name: Add kubernetes package repository on CentOS

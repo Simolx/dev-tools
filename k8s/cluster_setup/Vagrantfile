@@ -17,7 +17,7 @@ Vagrant.configure("2") do |config|
       vb.cpus = "2"
       vb.memory = "4096"
     end
-    master1.vm.box = "bento/ubuntu-24.04"
+    master1.vm.box = "bento/ubuntu-22.04"
     master1.vm.box_version = "202510.26.0"
     master1.vm.hostname = "master1"
     master1.vm.network "private_network", ip: "10.98.66.30"
@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
       vb.cpus = "2"
       vb.memory = "4096"
     end
-    master2.vm.box = "bento/ubuntu-24.04"
+    master2.vm.box = "bento/ubuntu-22.04"
     master2.vm.box_version = "202510.26.0"
     master2.vm.hostname = "master2"
     master2.vm.network "private_network", ip: "10.98.66.31"
@@ -39,7 +39,7 @@ Vagrant.configure("2") do |config|
       vb.cpus = "2"
       vb.memory = "4096"
     end
-    master3.vm.box = "bento/ubuntu-24.04"
+    master3.vm.box = "bento/ubuntu-22.04"
     master3.vm.box_version = "202510.26.0"
     master3.vm.hostname = "master3"
     master3.vm.network "private_network", ip: "10.98.66.32"
