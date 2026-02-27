@@ -66,7 +66,7 @@ kubeadm config images list --image-repository=registry.aliyuncs.com/google_conta
 kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers
 
 # copy pause image tag, or config /etc/containerd/config.toml
-docker tag registry.aliyuncs.com/google_containers/pause:3.10 registry.k8s.io/pause:3.9
+docker tag registry.aliyuncs.com/google_containers/pause:3.10.1 registry.k8s.io/pause:3.10
 
 sudo kubeadm init --control-plane-endpoint  controlplane --pod-network-cidr=10.96.0.0/16 --cri-socket=unix:///var/run/cri-dockerd.sock --image-repository=registry.aliyuncs.com/google_containers --service-cidr=10.97.0.0/16 --apiserver-advertise-address=10.98.66.30
 # vagrant ssh master2
@@ -76,8 +76,20 @@ sudo kubeadm init --control-plane-endpoint  controlplane --pod-network-cidr=10.9
 9. config calico
 
 ```bash
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.0/manifests/tigera-operator.yaml
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.0/manifests/custom-resources.yaml
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/operator-crds.yaml
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/tigera-operator.yaml
+
+# eBPF
+curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/custom-resources-bpf.yaml
+kubectl create -f custom-resources-bpf.yaml
+
+# iptables
+curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/custom-resources.yaml
+kubectl create -f custom-resources.yaml
+
+# Monitor
+watch kubectl get tigerastatus
+
 ```
 
 10. worker join use the command from init result
