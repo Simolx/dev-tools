@@ -68,7 +68,7 @@ kubeadm config images pull --image-repository=registry.aliyuncs.com/google_conta
 # copy pause image tag, or config /etc/containerd/config.toml
 docker tag registry.aliyuncs.com/google_containers/pause:3.10.1 registry.k8s.io/pause:3.10
 
-sudo kubeadm init --control-plane-endpoint  controlplane --pod-network-cidr=10.96.0.0/16 --cri-socket=unix:///var/run/cri-dockerd.sock --image-repository=registry.aliyuncs.com/google_containers --service-cidr=10.97.0.0/16 --apiserver-advertise-address=10.98.66.30
+sudo kubeadm init --control-plane-endpoint  controlplane --pod-network-cidr=10.96.0.0/16 --cri-socket=unix:///var/run/cri-dockerd.sock --image-repository=registry.aliyuncs.com/google_containers --service-cidr=10.97.0.0/24 --apiserver-advertise-address=10.98.66.30
 # vagrant ssh master2
 # vagrant ssh master3
 ```
@@ -83,7 +83,7 @@ kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.4
 curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/custom-resources-bpf.yaml
 kubectl create -f custom-resources-bpf.yaml
 
-# iptables
+# iptables, update pod cidr config
 curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/custom-resources.yaml
 kubectl create -f custom-resources.yaml
 
@@ -93,6 +93,10 @@ watch kubectl get tigerastatus
 ```
 
 10. worker join use the command from init result
+
+```bash
+sudo kubeadm join controlplane:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash> --cri-socket=unix:///var/run/cri-dockerd.sock
+```
 
 11. remove the taints on the control plane so that you can schedule pods on it
 
