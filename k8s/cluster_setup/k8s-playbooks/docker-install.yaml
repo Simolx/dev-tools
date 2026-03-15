@@ -6,6 +6,9 @@
     GOVERSION: "1.26.0"
     GOPROXY: "https://goproxy.cn,direct"
     CRIDOCKERDVERSION: 0.3.24
+    cri_dockerd_arch_map:
+      x86_64: amd64
+      aarch64: arm64
   tasks:
     - name: remove installed docker packages on CentOS
       ansible.builtin.yum:
@@ -134,11 +137,67 @@
 ##        line: 'export PATH=$PATH:/usr/local/go/bin'
 ##        create: yes
 ##      when: ansible_facts['os_family'] == "Debian"
-    - name: Install cir-docker package On CentOS
-      ansible.builtin.yum:
-        name: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd-{{ CRIDOCKERDVERSION }}-3.fc36.{{ ansible_architecture }}.rpm
-        state: latest
-      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Detect architecture
+      set_fact:
+        cri_arch: "{{ cri_dockerd_arch_map[ansible_architecture] }}"
+
+    - name: Download cri-dockerd archive
+      get_url:
+        url: "https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd-{{ CRIDOCKERDVERSION }}.{{ cri_arch }}.tgz"
+        dest: "/usr/local/bin/cri-dockerd.tgz"
+        mode: "0644"
+
+    - name: Extract cri-dockerd
+      unarchive:
+        src: "/usr/local/bin/cri-dockerd.tgz"
+        dest: "/usr/local/bin"
+        remote_src: yes
+        extra_opts:
+          - --strip-components=1
+
+    - name: Ensure binary executable
+      file:
+        path: /usr/local/bin/cri-dockerd
+        mode: "0755"
+
+    - name: Remove archive
+      file:
+        path: "/usr/local/bin/cri-dockerd.tgz"
+        state: absent
+
+    - name: Download systemd service
+      get_url:
+        url: https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
+        dest: /etc/systemd/system/cri-docker.service
+
+    - name: Download systemd socket
+      get_url:
+        url: https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
+        dest: /etc/systemd/system/cri-docker.socket
+
+    - name: Fix binary path
+      replace:
+        path: /etc/systemd/system/cri-docker.service
+        regexp: /usr/bin/cri-dockerd
+        replace: /usr/local/bin/cri-dockerd
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable cri-docker socket
+      systemd:
+        name: cri-docker.socket
+        enabled: yes
+        state: started
+
+    - name: Enable cri-docker service
+      systemd:
+        name: cri-docker.service
+        enabled: yes
+        state: started
+
     - name: Install cir-docker package On Ubuntu
       ansible.builtin.apt:
         deb: https://github.com/Mirantis/cri-dockerd/releases/download/v{{ CRIDOCKERDVERSION }}/cri-dockerd_{{ CRIDOCKERDVERSION }}.3-0.ubuntu-{{ ansible_distribution_release }}_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb

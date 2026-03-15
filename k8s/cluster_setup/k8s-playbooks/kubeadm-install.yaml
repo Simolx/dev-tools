@@ -14,8 +14,9 @@
         file: kubernetes
         baseurl: https://pkgs.k8s.io/core:/stable:/{{ KUBERNETESVERSION }}/rpm
         enabled: true
-        gpgchck: true
+        gpgcheck: true
         gpgkey: https://pkgs.k8s.io/core:/stable:/{{ KUBERNETESVERSION }}/rpm/repodata/repomd.xml.key
+        description: kubernetes
         exclude:
           - kubelet
           - kubeadm
@@ -30,7 +31,7 @@
            - kubeadm
            - kubectl
          state: latest
-         disable_exclude: kubernetes
+         disable_excludes: kubernetes
       when: ansible_facts['os_family'] == "RedHat"
     - name: Add kubernetes repository signing key on Ubuntu
       ansible.builtin.apt_key:

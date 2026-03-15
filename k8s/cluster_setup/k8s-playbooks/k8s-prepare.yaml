@@ -3,9 +3,9 @@
   become: true
   become_user: root
   tasks:
-    - name: centos update yum repo
-      ansible.builtin.shell: "sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*"
-      when: ansible_facts['os_family'] == "RedHat"
+#    - name: centos update yum repo
+#      ansible.builtin.shell: "sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*"
+#      when: ansible_facts['os_family'] == "RedHat"
     - name: update installed packages on CentOS
       ansible.builtin.yum:
          name: '*'
@@ -19,10 +19,10 @@
           - wget
           - conntrack-tools
           - systemd-resolved
-          - net-tools
           - firewalld
-          - ntp
-          - ntpdate
+#          - ntp
+#          - ntpdate
+          - chrony
           - socat
         state: latest
       when: ansible_facts['os_family'] == "RedHat"
