@@ -1,20 +1,25 @@
 FROM ubuntu
 
-ARG CONDA_VERSION="2024.06-1"
-ARG GO_VERSION="1.23.1"
-ARG NVM_VERSION="v0.39.7"
-ARG NODE_VERSION="20"
+ARG CONDA_VERSION="2025.12-2"
+ARG GO_VERSION="1.26.3"
+ARG NVM_VERSION="v0.40.4"
+ARG NODE_VERSION="26"
 ARG USERNAME=developer
 ARG USER_PASSWD
 
+ENV TZ='Asia/Shanghai' \
+    DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo tree git vim tmux openssh-client net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full p7zip-rar dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
+    apt-get install -y sudo tree git vim tmux openssh-client net-tools dnsutils iputils-ping telnet zip curl wget p7zip-full dos2unix file gnutls-bin dstat tmuxinator g++ gnupg2 && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -o python_installer.sh -L https://repo.anaconda.com/archive/Anaconda3-${CONDA_VERSION}-Linux-$(uname -m).sh && \
     bash python_installer.sh -p /opt/python3 -b && \
+    /opt/python3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    /opt/python3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
     /opt/python3/bin/conda update --all -y && \
     pypackages="conda-forge::py7zr" && \
     [ "$(uname -m)" = "x86_64" ] && pypackages="conda-forge::powerline-status conda-forge::powerline-gitstatus ${pypackages}" || echo && \
@@ -34,7 +39,7 @@ RUN helm_latest_release_response=$( curl -L --silent --show-error --fail https:/
     rm -f helm-linux.tar.gz
 
 # RUN GITHUB_RAW_IP=$(nslookup  raw.githubusercontent.com 8.8.8.8 | grep Address | grep -v '8.8.8.8' | head -n 1 | awk '{print $2}') && \
-#    curl --resolv raw.githubusercontent.com:443:${GITHUB_RAW_IP} -o-  https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+#    curl --resolve raw.githubusercontent.com:443:${GITHUB_RAW_IP} -o-  https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 RUN useradd -m ${USERNAME} && \
     echo "${USERNAME}:${USER_PASSWD}" | chpasswd && \
@@ -45,7 +50,7 @@ COPY --chown=${USERNAME}:${USERNAME} vimrc /home/${USERNAME}/.vimrc
 USER ${USERNAME}
 
 RUN GITHUB_RAW_IP=$(nslookup  raw.githubusercontent.com 8.8.8.8 | grep Address | grep -v '8.8.8.8' | head -n 1 | awk '{print $2}') && \
-    curl --resolv raw.githubusercontent.com:443:${GITHUB_RAW_IP} -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash && \
+    curl --resolve raw.githubusercontent.com:443:${GITHUB_RAW_IP} -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash && \
     NVM_DIR="$HOME/.nvm" && \
     . "$NVM_DIR/nvm.sh" && \
     . "$NVM_DIR/bash_completion" && \
@@ -53,7 +58,7 @@ RUN GITHUB_RAW_IP=$(nslookup  raw.githubusercontent.com 8.8.8.8 | grep Address |
     npm install -g @bazel/bazelisk
 
 RUN GITHUB_RAW_IP=$(nslookup  raw.githubusercontent.com 8.8.8.8 | grep Address | grep -v '8.8.8.8' | head -n 1 | awk '{print $2}') && \
-    curl --resolv raw.githubusercontent.com:443:${GITHUB_RAW_IP} -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    curl --resolve raw.githubusercontent.com:443:${GITHUB_RAW_IP} -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
@@ -86,6 +91,28 @@ RUN PATH=$PATH:/usr/local/go/bin && \
     /usr/local/go/bin/go env -w GOPROXY=https://goproxy.cn,direct && \
     vim +PlugInstall +qall && \
     vim +GoInstallBinaries +qall
+
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+ENV PATH=/home/${USERNAME}/.local/bin:$PATH
+ENV ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic \
+    ANTHROPIC_MODEL=deepseek-v4-pro[1m] \
+    ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek-v4-pro[1m] \
+    ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek-v4-pro[1m] \
+    ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash \
+    CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-flash \
+    CLAUDE_CODE_EFFORT_LEVEL=max
+
+RUN claude plugin marketplace add anthropics/claude-plugins-official && \
+    claude plugin install superpowers && \
+    claude plugin install frontend-design && \
+    claude plugin install context7 && \
+    claude plugin install code-simplifier && \
+    claude plugin install claude-md-management && \
+    claude plugin install gopls-lsp && \
+    claude plugin install pyright-lsp && \
+    claude plugin install skill-creator && \
+    claude plugin install feature-dev
 
 WORKDIR /home/${USERNAME} 
 
